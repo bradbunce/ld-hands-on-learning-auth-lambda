@@ -25,15 +25,6 @@ const handleLogin = async (requestBody) => {
     
     const { username, password } = requestBody;
 
-    // Validate input
-    if (!username || !password) {
-        console.log('Login failed: Missing username or password');
-        return {
-            statusCode: 400,
-            body: JSON.stringify({ error: 'Username and password are required' })
-        };
-    }
-
     try {
         const user = await getUserByUsername(username);
         console.log('User lookup result:', user ? 'User found' : 'User not found');
@@ -41,7 +32,11 @@ const handleLogin = async (requestBody) => {
         if (!user) {
             return {
                 statusCode: 401,
-                body: JSON.stringify({ error: 'Invalid credentials' })
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': ALLOWED_ORIGIN
+                },
+                body: { error: 'Invalid credentials' }  // Not stringified
             };
         }
 
@@ -51,7 +46,11 @@ const handleLogin = async (requestBody) => {
         if (!validPassword) {
             return {
                 statusCode: 401,
-                body: JSON.stringify({ error: 'Invalid credentials' })
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': ALLOWED_ORIGIN
+                },
+                body: { error: 'Invalid credentials' }  // Not stringified
             };
         }
 
@@ -59,7 +58,11 @@ const handleLogin = async (requestBody) => {
 
         return {
             statusCode: 200,
-            body: JSON.stringify({
+            headers: {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': ALLOWED_ORIGIN
+            },
+            body: {  // Not stringified
                 token,
                 user: {
                     username: user.username,
@@ -68,13 +71,17 @@ const handleLogin = async (requestBody) => {
                     state: user.state,
                     countryCode: user.country_code
                 }
-            })
+            }
         };
     } catch (error) {
         console.error('Login error:', error);
         return {
             statusCode: 500,
-            body: JSON.stringify({ error: 'Internal server error during login' })
+            headers: {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': ALLOWED_ORIGIN
+            },
+            body: { error: 'Internal server error during login' }  // Not stringified
         };
     }
 };
