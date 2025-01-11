@@ -21,39 +21,62 @@ const generateResetToken = () => {
 };
 
 const handleLogin = async (requestBody) => {
+    console.log('Login attempt for username:', requestBody.username);
+    
     const { username, password } = requestBody;
 
-    const user = await getUserByUsername(username);
-    if (!user) {
+    // Validate input
+    if (!username || !password) {
+        console.log('Login failed: Missing username or password');
         return {
-            statusCode: 401,
-            body: JSON.stringify({ message: 'Invalid credentials' })
+            statusCode: 400,
+            body: JSON.stringify({ error: 'Username and password are required' })
         };
     }
 
-    const validPassword = await bcrypt.compare(password, user.password_hash);
-    if (!validPassword) {
+    try {
+        const user = await getUserByUsername(username);
+        console.log('User lookup result:', user ? 'User found' : 'User not found');
+
+        if (!user) {
+            return {
+                statusCode: 401,
+                body: JSON.stringify({ error: 'Invalid credentials' })
+            };
+        }
+
+        const validPassword = await bcrypt.compare(password, user.password_hash);
+        console.log('Password validation result:', validPassword ? 'Valid' : 'Invalid');
+
+        if (!validPassword) {
+            return {
+                statusCode: 401,
+                body: JSON.stringify({ error: 'Invalid credentials' })
+            };
+        }
+
+        const token = generateToken(user);
+
         return {
-            statusCode: 401,
-            body: JSON.stringify({ message: 'Invalid credentials' })
+            statusCode: 200,
+            body: JSON.stringify({
+                token,
+                user: {
+                    username: user.username,
+                    email: user.email,
+                    city: user.city,
+                    state: user.state,
+                    countryCode: user.country_code
+                }
+            })
+        };
+    } catch (error) {
+        console.error('Login error:', error);
+        return {
+            statusCode: 500,
+            body: JSON.stringify({ error: 'Internal server error during login' })
         };
     }
-
-    const token = generateToken(user);
-
-    return {
-        statusCode: 200,
-        body: JSON.stringify({
-            token,
-            user: {
-                username: user.username,
-                email: user.email,
-                city: user.city,
-                state: user.state,
-                countryCode: user.country_code
-            }
-        })
-    };
 };
 
 const handleRegister = async (requestBody) => {
