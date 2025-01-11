@@ -5,6 +5,8 @@ const { getUserByUsername, createUser, createConnection, getUserById, updateUser
 const { queries } = require('./queries');
 const { sendPasswordResetEmail } = require('./emailService');
 
+const ALLOWED_ORIGIN = 'https://weather-app.brad.launchdarklydemos.com';
+
 const generateToken = (user) => {
     return jwt.sign(
         { 
@@ -30,59 +32,31 @@ const handleLogin = async (requestBody) => {
         console.log('User lookup result:', user ? 'User found' : 'User not found');
 
         if (!user) {
-            return {
-                statusCode: 401,
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Access-Control-Allow-Origin': ALLOWED_ORIGIN
-                },
-                body: { error: 'Invalid credentials' }  // Not stringified
-            };
+            return createResponse(401, { error: 'Invalid credentials' });
         }
 
         const validPassword = await bcrypt.compare(password, user.password_hash);
         console.log('Password validation result:', validPassword ? 'Valid' : 'Invalid');
 
         if (!validPassword) {
-            return {
-                statusCode: 401,
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Access-Control-Allow-Origin': ALLOWED_ORIGIN
-                },
-                body: { error: 'Invalid credentials' }  // Not stringified
-            };
+            return createResponse(401, { error: 'Invalid credentials' });
         }
 
         const token = generateToken(user);
 
-        return {
-            statusCode: 200,
-            headers: {
-                'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': ALLOWED_ORIGIN
-            },
-            body: {  // Not stringified
-                token,
-                user: {
-                    username: user.username,
-                    email: user.email,
-                    city: user.city,
-                    state: user.state,
-                    countryCode: user.country_code
-                }
+        return createResponse(200, {
+            token,
+            user: {
+                username: user.username,
+                email: user.email,
+                city: user.city,
+                state: user.state,
+                countryCode: user.country_code
             }
-        };
+        });
     } catch (error) {
         console.error('Login error:', error);
-        return {
-            statusCode: 500,
-            headers: {
-                'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': ALLOWED_ORIGIN
-            },
-            body: { error: 'Internal server error during login' }  // Not stringified
-        };
+        return createResponse(500, { error: 'Internal server error during login' });
     }
 };
 
