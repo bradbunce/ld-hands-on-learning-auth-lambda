@@ -1,5 +1,5 @@
-// Load environment variables in development
-if (process.env.NODE_ENV !== 'production') {
+// Only use dotenv in development
+if (process.env.NODE_ENV === 'development') {
     require('dotenv').config();
 }
 
