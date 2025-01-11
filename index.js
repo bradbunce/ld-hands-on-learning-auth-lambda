@@ -10,14 +10,15 @@ const ALLOWED_ORIGIN = 'https://weather-app.brad.launchdarklydemos.com';
 
 const createResponse = (statusCode, body, headers = {}) => ({
     statusCode,
-    body: JSON.stringify(body),
     headers: {
+        'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
-        'Access-Control-Allow-Methods': 'OPTIONS,POST',
-        'Access-Control-Allow-Headers': 'Content-Type,Authorization',
+        'Access-Control-Allow-Methods': 'OPTIONS,POST,GET',
+        'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token',
         'Access-Control-Allow-Credentials': 'true',
         ...headers
-    }
+    },
+    body: JSON.stringify(body)
 });
 
 exports.handler = async (event) => {
@@ -28,7 +29,15 @@ exports.handler = async (event) => {
 
     try {
         const { path, httpMethod, body } = event;
-        const requestBody = JSON.parse(body);
+        let requestBody;
+        
+        try {
+            requestBody = body ? JSON.parse(body) : {};
+        } catch (e) {
+            return createResponse(400, { 
+                error: 'Invalid JSON in request body'
+            });
+        }
 
         let result;
         switch (`${httpMethod} ${path}`) {
@@ -42,10 +51,15 @@ exports.handler = async (event) => {
                 result = await handlePasswordReset(requestBody);
                 return createResponse(200, result);
             default:
-                return createResponse(404, { message: 'Not Found' });
+                return createResponse(404, { 
+                    error: 'Not Found' 
+                });
         }
     } catch (error) {
         console.error('Error:', error);
-        return createResponse(500, { message: 'Internal server error' });
+        // Send a more specific error message while maintaining security
+        return createResponse(500, { 
+            error: error.message || 'Internal server error'
+        });
     }
 };
