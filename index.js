@@ -4,6 +4,7 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 const { handleLogin, handleRegister, handlePasswordReset } = require('./authProcessor');
+const { createResponse } = require('./utils');
 
 // Ensure exact match with your domain
 const ALLOWED_ORIGIN = 'https://weather-app.brad.launchdarklydemos.com';

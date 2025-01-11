@@ -4,8 +4,7 @@ const crypto = require('crypto');
 const { getUserByUsername, createUser, createConnection, getUserById, updateUserPassword } = require('./database');
 const { queries } = require('./queries');
 const { sendPasswordResetEmail } = require('./emailService');
-
-const ALLOWED_ORIGIN = 'https://weather-app.brad.launchdarklydemos.com';
+const { createResponse } = require('./utils');
 
 const generateToken = (user) => {
     return jwt.sign(
