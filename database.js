@@ -81,13 +81,13 @@ const getUserById = async (userId) => {
     }
 };
 
-const createUser = async ({ username, passwordHash, email, city, state, countryCode, latitude, longitude }) => {
+const createUser = async ({ username, passwordHash }) => {
     let connection;
     try {
         connection = await createConnection('write');
         const [result] = await connection.execute(
             queries.createUser,
-            [username, passwordHash, email, city, state, countryCode, latitude, longitude]
+            [username, passwordHash]
         );
         return result.insertId;
     } catch (error) {

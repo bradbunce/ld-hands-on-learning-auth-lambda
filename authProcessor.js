@@ -57,7 +57,17 @@ const handleLogin = async (requestBody) => {
 };
 
 const handleRegister = async (requestBody) => {
-    const { username, password, email, city, state, countryCode, latitude, longitude } = requestBody;
+    console.log('Registration request body:', requestBody); // Debug log
+
+    const { username, password } = requestBody;
+
+    // Validate required fields
+    if (!username || !password) {
+        return {
+            statusCode: 400,
+            body: JSON.stringify({ message: 'Username and password are required' })
+        };
+    }
 
     // Check if user exists
     const existingUser = await getUserByUsername(username);
@@ -75,13 +85,7 @@ const handleRegister = async (requestBody) => {
     // Create user
     const userId = await createUser({
         username,
-        passwordHash,
-        email,
-        city,
-        state,
-        countryCode,
-        latitude,
-        longitude
+        passwordHash
     });
 
     return {

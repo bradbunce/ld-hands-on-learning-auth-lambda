@@ -16,14 +16,8 @@ const queries = {
     createUser: `
         INSERT INTO users (
             username,
-            password_hash,
-            email,
-            city,
-            state,
-            country_code,
-            latitude,
-            longitude
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            password_hash
+        ) VALUES (?, ?)
     `,
 
     updateLastLogin: `
