@@ -1,5 +1,5 @@
 {
-    "FunctionName": "weather-app-auth-lambda",
+    "FunctionName": "brad-weather-app-auth-lambda",
     "Runtime": "nodejs20.x",
     "Handler": "index.handler",
     "MemorySize": 256,

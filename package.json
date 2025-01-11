@@ -1,5 +1,5 @@
 {
-    "name": "auth-lambda",
+    "name": "brad-weather-app-auth-lambda",
     "version": "1.0.0",
     "description": "Authentication Lambda for weather app",
     "main": "index.js",
