@@ -42,8 +42,7 @@ const handleLogin = async (requestBody) => {
         }
 
         const token = generateToken(user);
-
-        return createResponse(200, {
+        const response = {
             token,
             user: {
                 username: user.username,
@@ -52,7 +51,10 @@ const handleLogin = async (requestBody) => {
                 state: user.state,
                 countryCode: user.country_code
             }
-        });
+        };
+        
+        console.log('Login response:', response);  // Debug log
+        return createResponse(200, response);
     } catch (error) {
         console.error('Login error:', error);
         return createResponse(500, { error: 'Internal server error during login' });
@@ -60,44 +62,46 @@ const handleLogin = async (requestBody) => {
 };
 
 const handleRegister = async (requestBody) => {
-    console.log('Registration request body:', requestBody); // Debug log
+    console.log('Registration request body:', requestBody);
 
     const { username, password } = requestBody;
 
     // Validate required fields
     if (!username || !password) {
-        return {
-            statusCode: 400,
-            body: JSON.stringify({ message: 'Username and password are required' })
-        };
+        return createResponse(400, { 
+            error: 'Username and password are required' 
+        });
     }
 
     // Check if user exists
     const existingUser = await getUserByUsername(username);
     if (existingUser) {
-        return {
-            statusCode: 409,
-            body: JSON.stringify({ message: 'Username already exists' })
-        };
+        return createResponse(409, { 
+            error: 'Username already exists' 
+        });
     }
 
-    // Hash password
-    const salt = await bcrypt.genSalt(10);
-    const passwordHash = await bcrypt.hash(password, salt);
+    try {
+        // Hash password
+        const salt = await bcrypt.genSalt(10);
+        const passwordHash = await bcrypt.hash(password, salt);
 
-    // Create user
-    const userId = await createUser({
-        username,
-        passwordHash
-    });
+        // Create user
+        const userId = await createUser({
+            username,
+            passwordHash
+        });
 
-    return {
-        statusCode: 201,
-        body: JSON.stringify({ 
+        return createResponse(201, { 
             message: 'User created successfully',
-            userId
-        })
-    };
+            userId 
+        });
+    } catch (error) {
+        console.error('Registration error:', error);
+        return createResponse(500, { 
+            error: 'Internal server error during registration' 
+        });
+    }
 };
 
 const initiatePasswordReset = async (requestBody) => {
