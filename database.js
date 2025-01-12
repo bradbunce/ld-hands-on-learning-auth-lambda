@@ -25,11 +25,10 @@ const dbConfig = {
         connectTimeout: 10000, // 10 seconds
         waitForConnections: true,
         connectionLimit: 10,
-        maxIdle: 10,
-        idleTimeout: 60000,
         queueLimit: 0,
         enableKeepAlive: true,
-        keepAliveInitialDelay: 0
+        keepAliveInitialDelay: 0,
+        timezone: 'Z' // UTC timezone
     },
     replica: {
         host: process.env.DB_READ_REPLICA_HOST,
@@ -39,11 +38,10 @@ const dbConfig = {
         connectTimeout: 10000, // 10 seconds
         waitForConnections: true,
         connectionLimit: 10,
-        maxIdle: 10,
-        idleTimeout: 60000,
         queueLimit: 0,
         enableKeepAlive: true,
-        keepAliveInitialDelay: 0
+        keepAliveInitialDelay: 0,
+        timezone: 'Z' // UTC timezone
     }
 };
 
