@@ -199,51 +199,51 @@ const handleLogout = async (requestBody, headers) => {
 };
 
 const handlePasswordReset = async (requestBody) => {
-    console.log('Password reset attempt started');
-    const { token, newPassword } = requestBody;
+    console.log('Password reset request started');
+    const { email } = requestBody;
 
-    if (!token || !newPassword) {
-        console.log('Password reset failed: Missing required fields');
-        return createResponse(400, { error: 'Token and new password are required' });
+    if (!email) {
+        console.log('Password reset request failed: Missing email');
+        return createResponse(400, { error: 'Email is required' });
     }
 
     const connection = await createConnection('write');
     try {
         await connection.beginTransaction();
 
-        const [resets] = await connection.execute(
-            queries.getPasswordReset,
-            [token]
+        // Retrieve user by email
+        const [users] = await connection.execute(
+            queries.getUserByEmail,
+            [email]
         );
 
-        if (resets.length === 0) {
-            console.log('Password reset failed: Invalid token');
-            return createResponse(400, {
-                error: 'Invalid or expired reset token'
+        if (users.length === 0) {
+            console.log('Password reset request failed: Email not found');
+            return createResponse(404, {
+                error: 'No account associated with this email'
             });
         }
 
-        const reset = resets[0];
-        const salt = await bcrypt.genSalt(10);
-        const passwordHash = await bcrypt.hash(newPassword, salt);
+        const user = users[0];
+        const resetToken = generateResetToken();
+        const expiresAt = new Date(Date.now() + 3600000); // 1 hour from now
 
+        // Store reset token
         await connection.execute(
-            queries.updateUserPassword,
-            [passwordHash, reset.user_id]
+            queries.createPasswordResetToken,
+            [user.user_id, resetToken, expiresAt]
         );
 
-        await connection.execute(
-            queries.markResetTokenUsed,
-            [token]
-        );
+        // Send password reset email
+        await sendPasswordResetEmail(email, resetToken);
 
         await connection.commit();
-        console.log('Password reset successful');
+        console.log('Password reset request successful');
         return createResponse(200, {
-            message: 'Password has been successfully reset'
+            message: 'Password reset link sent to your email'
         });
     } catch (error) {
-        console.error('Password reset error:', {
+        console.error('Password reset request error:', {
             errorMessage: error.message,
             errorName: error.name,
             errorStack: error.stack,
@@ -252,7 +252,7 @@ const handlePasswordReset = async (requestBody) => {
 
         await connection.rollback();
         return createResponse(500, {
-            error: 'Internal server error during password reset',
+            error: 'Internal server error during password reset request',
             details: process.env.NODE_ENV === 'development' ? error.message : undefined
         });
     } finally {
@@ -306,10 +306,76 @@ const handlePasswordUpdate = async (requestBody, userId) => {
     }
 };
 
+const handlePasswordResetConfirm = async (requestBody) => {
+    console.log('Password reset confirmation started');
+    const { resetToken, newPassword } = requestBody;
+
+    if (!resetToken || !newPassword) {
+        console.log('Password reset confirmation failed: Missing required fields');
+        return createResponse(400, { error: 'Reset token and new password are required' });
+    }
+
+    const connection = await createConnection('write');
+    try {
+        await connection.beginTransaction();
+
+        // Check if reset token is valid and not expired
+        const [resets] = await connection.execute(
+            queries.getValidPasswordReset,
+            [resetToken, new Date()]
+        );
+
+        if (resets.length === 0) {
+            console.log('Password reset confirmation failed: Invalid or expired token');
+            return createResponse(400, {
+                error: 'Invalid or expired reset token'
+            });
+        }
+
+        const reset = resets[0];
+        const salt = await bcrypt.genSalt(10);
+        const passwordHash = await bcrypt.hash(newPassword, salt);
+
+        // Update user password
+        await connection.execute(
+            queries.updateUserPassword,
+            [passwordHash, reset.user_id]
+        );
+
+        // Mark reset token as used
+        await connection.execute(
+            queries.markResetTokenUsed,
+            [resetToken]
+        );
+
+        await connection.commit();
+        console.log('Password reset confirmation successful');
+        return createResponse(200, {
+            message: 'Password has been successfully reset'
+        });
+    } catch (error) {
+        console.error('Password reset confirmation error:', {
+            errorMessage: error.message,
+            errorName: error.name,
+            errorStack: error.stack,
+            timestamp: new Date().toISOString()
+        });
+
+        await connection.rollback();
+        return createResponse(500, {
+            error: 'Internal server error during password reset confirmation',
+            details: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
+    } finally {
+        await connection.end();
+    }
+};
+
 module.exports = {
     handleLogin,
     handleRegister,
     handlePasswordReset,
+    handlePasswordResetConfirm,
     handlePasswordUpdate,
     handleLogout
 };
