@@ -7,7 +7,9 @@ const {
   handleLogin,
   handleRegister,
   handlePasswordReset,
-} = require("./authProcessor");
+  handlePasswordUpdate,
+  handleLogout
+  } = require("./authProcessor");
 const { createResponse } = require("./utils"); // Import from utils
 
 exports.handler = async (event) => {
