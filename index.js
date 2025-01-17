@@ -10,7 +10,8 @@ const {
   handlePasswordReset,
   handlePasswordResetConfirm,
   handlePasswordUpdate,
-  handleLogout
+  handleLogout,
+  handleValidateResetToken
 } = require("./authProcessor");
 const { createResponse } = require("./utils");
 
