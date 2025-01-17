@@ -135,18 +135,26 @@ const handleRegister = async (requestBody) => {
     try {
         await connection.beginTransaction();
 
-        // Check if username exists
-        const existingUser = await getUserByUsername(username);
-        if (existingUser) {
+        // Check for existing username
+        const [existingUsers] = await connection.execute(
+            queries.getUserByUsername,
+            [username]
+        );
+
+        if (existingUsers.length > 0) {
             console.log('Registration failed: Username exists');
             return createResponse(409, { 
                 error: 'Username already exists' 
             });
         }
 
-        // Check if email exists
-        const existingEmail = await getUserByEmail(email);
-        if (existingEmail) {
+        // Check for existing email
+        const [existingEmails] = await connection.execute(
+            queries.getUserByEmail,
+            [email]
+        );
+
+        if (existingEmails.length > 0) {
             console.log('Registration failed: Email exists');
             return createResponse(409, { 
                 error: 'Email address already registered' 
@@ -156,17 +164,18 @@ const handleRegister = async (requestBody) => {
         const salt = await bcrypt.genSalt(10);
         const passwordHash = await bcrypt.hash(password, salt);
 
-        const userId = await createUser({
-            username,
-            email,
-            passwordHash
-        });
+        // Create new user
+        const [result] = await connection.execute(
+            queries.createUser,
+            [username, email, passwordHash]
+        );
 
         await connection.commit();
+        
         console.log('Registration successful');
         return createResponse(201, { 
             message: 'User created successfully',
-            userId 
+            userId: result.insertId 
         });
     } catch (error) {
         console.error('Registration error:', {
