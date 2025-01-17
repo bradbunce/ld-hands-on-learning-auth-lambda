@@ -47,7 +47,11 @@ exports.handler = async (event) => {
         result = await handleRegister(requestBody);
         return result;
 
-      case "POST /reset-password-request":  // Changed from /reset-password
+       case "POST /validate-reset-token":
+         result = await handleValidateResetToken(requestBody);
+         return result;
+
+      case "POST /reset-password-request":
         result = await handlePasswordReset(requestBody);
         return result;
 

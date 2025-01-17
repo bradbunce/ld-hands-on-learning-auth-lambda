@@ -234,6 +234,44 @@ const handleLogout = async (requestBody, headers) => {
     }
 };
 
+const handleValidateResetToken = async (requestBody) => {
+    console.log('Reset token validation started');
+    const { resetToken } = requestBody;
+
+    if (!resetToken) {
+        console.log('Token validation failed: Missing token');
+        return createResponse(400, { error: 'Reset token is required' });
+    }
+
+    const connection = await createConnection('read');
+    try {
+        // Check if reset token is valid and not expired
+        const [resets] = await connection.execute(
+            queries.getValidPasswordReset,
+            [resetToken, new Date()]
+        );
+
+        if (resets.length === 0) {
+            console.log('Token validation failed: Invalid or expired token');
+            return createResponse(400, {
+                error: 'Invalid or expired reset token'
+            });
+        }
+
+        console.log('Token validation successful');
+        return createResponse(200, {
+            message: 'Token is valid'
+        });
+    } catch (error) {
+        console.error('Token validation error:', error);
+        return createResponse(500, {
+            error: 'Internal server error during token validation'
+        });
+    } finally {
+        await connection.end();
+    }
+};
+
 const handlePasswordReset = async (requestBody) => {
     console.log('Password reset request started');
     const { email } = requestBody;
@@ -413,6 +451,7 @@ const handlePasswordResetConfirm = async (requestBody) => {
 module.exports = {
     handleLogin,
     handleRegister,
+    handleValidateResetToken,
     handlePasswordReset,
     handlePasswordResetConfirm,
     handlePasswordUpdate,
