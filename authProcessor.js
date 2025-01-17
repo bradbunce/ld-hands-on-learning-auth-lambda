@@ -243,7 +243,7 @@ const handleValidateResetToken = async (requestBody) => {
         return createResponse(400, { error: 'Reset token is required' });
     }
 
-    const connection = await createConnection('read');
+    const connection = await createConnection('write');
     try {
         // Check if reset token is valid and not expired
         const [resets] = await connection.execute(
@@ -451,9 +451,9 @@ const handlePasswordResetConfirm = async (requestBody) => {
 module.exports = {
     handleLogin,
     handleRegister,
-    handleValidateResetToken,
     handlePasswordReset,
     handlePasswordResetConfirm,
     handlePasswordUpdate,
-    handleLogout
+    handleLogout,
+    handleValidateResetToken
 };
