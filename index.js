@@ -51,7 +51,7 @@ exports.handler = async (event) => {
       case "POST /reset-password-confirm":
           result = await handlePasswordResetConfirm(requestBody);
           return result;
-      case "POST /validate-reset-token":    // Add this case
+      case "POST /validate-reset-token":
           result = await handleValidateResetToken(requestBody);
           return result;
       case "POST /logout":
