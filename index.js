@@ -3,6 +3,7 @@ if (process.env.NODE_ENV === "development") {
   require("dotenv").config();
 }
 
+const jwt = require('jsonwebtoken');
 const {
   handleLogin,
   handleRegister,
@@ -50,9 +51,24 @@ exports.handler = async (event) => {
         console.log("Processing logout request");
         result = await handleLogout(requestBody, event.headers);
         return result;
-      case "POST /update-password":
-        result = await handlePasswordUpdate(requestBody, event.headers);
-        return result;
+        case "POST /update-password":
+          const authHeader = event.headers.Authorization || event.headers.authorization;
+          if (!authHeader) {
+            return createResponse(401, { error: "Authorization header required" });
+          }
+          
+          // Extract token from Bearer header
+          const token = authHeader.replace('Bearer ', '');
+          
+          try {
+            // Verify and decode the token
+            const decoded = jwt.verify(token, process.env.JWT_SECRET);
+            result = await handlePasswordUpdate(requestBody, decoded.userId);
+            return result;
+          } catch (error) {
+            console.error('Token verification failed:', error);
+            return createResponse(401, { error: "Invalid token" });
+          }
       default:
         console.log("No matching route found for:", routeKey);
         return createResponse(404, {
