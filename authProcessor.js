@@ -262,12 +262,11 @@ const handlePasswordReset = async (requestBody) => {
 
         const user = users[0];
         const resetToken = generateResetToken();
-        const expiresAt = new Date(Date.now() + 3600000); // 1 hour from now
-
-        // Store reset token
+        
+        // Store reset token - using the correct query name 'createPasswordReset'
         await connection.execute(
-            queries.createPasswordResetToken,
-            [user.user_id, resetToken, expiresAt]
+            queries.createPasswordReset,
+            [user.user_id, resetToken]
         );
 
         // Send password reset email
