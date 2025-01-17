@@ -44,6 +44,13 @@ exports.handler = async (event) => {
       case "POST /reset-password":
         result = await handlePasswordReset(requestBody);
         return result;
+      case "POST /logout":
+        console.log("Processing logout request");
+        result = await handleLogout(requestBody, event.headers);
+        return result;
+      case "POST /update-password":
+        result = await handlePasswordUpdate(requestBody, event.headers);
+        return result;
       default:
         console.log("No matching route found for:", routeKey);
         return createResponse(404, {
