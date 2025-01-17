@@ -2,7 +2,8 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const { 
-    getUserByUsername, 
+    getUserByUsername,
+    getUserByEmail, 
     createUser, 
     createConnection, 
     getUserById, 
@@ -92,7 +93,6 @@ const handleLogin = async (requestBody) => {
             timestamp: new Date().toISOString()
         });
 
-        // Check for specific error types
         if (error.code === 'ECONNREFUSED') {
             console.error('Database connection failed');
             return createResponse(503, { error: 'Database connection failed' });
@@ -113,16 +113,29 @@ const handleLogin = async (requestBody) => {
 const handleRegister = async (requestBody) => {
     console.log('Registration attempt started');
 
-    const { username, password } = requestBody;
+    const { username, email, password } = requestBody;
 
-    if (!username || !password) {
+    if (!username || !password || !email) {
         console.log('Registration failed: Missing required fields');
         return createResponse(400, { 
-            error: 'Username and password are required' 
+            error: 'Username, email, and password are required' 
         });
     }
 
+    // Email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        console.log('Registration failed: Invalid email format');
+        return createResponse(400, { 
+            error: 'Invalid email format' 
+        });
+    }
+
+    const connection = await createConnection('write');
     try {
+        await connection.beginTransaction();
+
+        // Check if username exists
         const existingUser = await getUserByUsername(username);
         if (existingUser) {
             console.log('Registration failed: Username exists');
@@ -131,14 +144,25 @@ const handleRegister = async (requestBody) => {
             });
         }
 
+        // Check if email exists
+        const existingEmail = await getUserByEmail(email);
+        if (existingEmail) {
+            console.log('Registration failed: Email exists');
+            return createResponse(409, { 
+                error: 'Email address already registered' 
+            });
+        }
+
         const salt = await bcrypt.genSalt(10);
         const passwordHash = await bcrypt.hash(password, salt);
 
         const userId = await createUser({
             username,
+            email,
             passwordHash
         });
 
+        await connection.commit();
         console.log('Registration successful');
         return createResponse(201, { 
             message: 'User created successfully',
@@ -152,10 +176,13 @@ const handleRegister = async (requestBody) => {
             timestamp: new Date().toISOString()
         });
 
+        await connection.rollback();
         return createResponse(500, { 
             error: 'Internal server error during registration',
             details: process.env.NODE_ENV === 'development' ? error.message : undefined
         });
+    } finally {
+        await connection.end();
     }
 };
 
