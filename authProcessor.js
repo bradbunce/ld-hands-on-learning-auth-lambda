@@ -263,14 +263,18 @@ const handlePasswordReset = async (requestBody) => {
         const user = users[0];
         const resetToken = generateResetToken();
         
-        // Store reset token - using the correct query name 'createPasswordReset'
+        console.log('Password reset email would be sent to:', email);
+        console.log('Reset token:', resetToken);
+        console.log('Username:', user.username);  // This will now correctly show the username
+
+        // Store reset token
         await connection.execute(
             queries.createPasswordReset,
             [user.user_id, resetToken]
         );
 
         // Send password reset email
-        await sendPasswordResetEmail(email, resetToken);
+        await sendPasswordResetEmail(email, resetToken, user.username);  // Pass username to email service
 
         await connection.commit();
         console.log('Password reset request successful');
