@@ -1,4 +1,3 @@
-const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const {
@@ -458,136 +457,126 @@ const handlePasswordResetConfirm = async (requestBody) => {
 };
 
 const handleProfileUpdate = async (requestBody, userId) => {
-  console.log("Profile update attempt started");
+  console.log('Profile update started for user:', userId);
   const { username, email, currentPassword } = requestBody;
-
+  
   if (!username && !email) {
-    console.log("Profile update failed: No fields to update");
-    return createResponse(400, {
-      error:
-        "At least one field (username or email) must be provided for update",
-    });
+      console.log('Profile update failed: No fields to update');
+      return createResponse(400, { error: 'At least one field (username or email) must be provided for update' });
   }
 
   if (!currentPassword) {
-    console.log("Profile update failed: Missing current password");
-    return createResponse(400, {
-      error: "Current password is required for security",
-    });
+      console.log('Profile update failed: Missing current password');
+      return createResponse(400, { error: 'Current password is required for security' });
   }
 
-  const connection = await createConnection("write");
+  const connection = await createConnection('write');
   try {
-    await connection.beginTransaction();
+      await connection.beginTransaction();
 
-    // Get current user data
-    const [users] = await connection.execute(queries.getUserById, [userId]);
-
-    if (users.length === 0) {
-      console.log("Profile update failed: User not found");
-      return createResponse(404, { error: "User not found" });
-    }
-
-    const user = users[0];
-
-    // Verify current password
-    const validPassword = await bcrypt.compare(
-      currentPassword,
-      user.password_hash
-    );
-    if (!validPassword) {
-      console.log("Profile update failed: Invalid current password");
-      return createResponse(401, { error: "Current password is incorrect" });
-    }
-
-    // Check username uniqueness if being updated
-    if (username && username !== user.username) {
-      const [existingUsers] = await connection.execute(
-        queries.getUserByUsername,
-        [username]
+      // First get current user data
+      const [users] = await connection.execute(
+          'SELECT username, email, password_hash FROM users WHERE user_id = ?',
+          [userId]
       );
 
-      if (existingUsers.length > 0) {
-        console.log("Profile update failed: Username exists");
-        return createResponse(409, { error: "Username already exists" });
+      if (users.length === 0) {
+          console.log('Profile update failed: User not found');
+          return createResponse(404, { error: 'User not found' });
       }
-    }
 
-    // Check email uniqueness if being updated
-    if (email && email !== user.email) {
-      const [existingEmails] = await connection.execute(
-        queries.getUserByEmail,
-        [email]
+      const currentUser = users[0];
+
+      // Verify current password first
+      const validPassword = await bcrypt.compare(currentPassword, currentUser.password_hash);
+      if (!validPassword) {
+          console.log('Profile update failed: Invalid password');
+          return createResponse(401, { error: 'Current password is incorrect' });
+      }
+
+      // Check username uniqueness if being updated
+      if (username && username !== currentUser.username) {
+          const [existingUsers] = await connection.execute(
+              'SELECT username FROM users WHERE username = ? AND user_id != ?',
+              [username, userId]
+          );
+
+          if (existingUsers.length > 0) {
+              console.log('Profile update failed: Username exists');
+              return createResponse(409, { error: 'Username already exists' });
+          }
+      }
+
+      // Check email uniqueness if being updated
+      if (email && email !== currentUser.email) {
+          const [existingEmails] = await connection.execute(
+              'SELECT email FROM users WHERE email = ? AND user_id != ?',
+              [email, userId]
+          );
+
+          if (existingEmails.length > 0) {
+              console.log('Profile update failed: Email exists');
+              return createResponse(409, { error: 'Email address already in use' });
+          }
+      }
+
+      // Build dynamic update query
+      const updates = [];
+      const values = [];
+      
+      if (username) {
+          updates.push('username = ?');
+          values.push(username);
+      }
+      if (email) {
+          updates.push('email = ?');
+          values.push(email);
+      }
+      
+      updates.push('updated_at = CURRENT_TIMESTAMP');
+      values.push(userId);
+
+      const updateQuery = `
+          UPDATE users 
+          SET ${updates.join(', ')}
+          WHERE user_id = ?
+      `;
+
+      await connection.execute(updateQuery, values);
+
+      // Fetch updated user data
+      const [updatedUsers] = await connection.execute(
+          'SELECT user_id, username, email FROM users WHERE user_id = ?',
+          [userId]
       );
 
-      if (existingEmails.length > 0) {
-        console.log("Profile update failed: Email exists");
-        return createResponse(409, { error: "Email address already in use" });
-      }
-    }
+      await connection.commit();
 
-    // Build dynamic update query
-    const updates = [];
-    const values = [];
+      console.log('Profile update successful');
+      return createResponse(200, {
+          message: 'Profile updated successfully',
+          user: {
+              id: updatedUsers[0].user_id,
+              username: updatedUsers[0].username,
+              email: updatedUsers[0].email
+          }
+      });
 
-    if (username) {
-      updates.push("username = ?");
-      values.push(username);
-    }
-    if (email) {
-      updates.push("email = ?");
-      values.push(email);
-    }
-
-    updates.push("updated_at = CURRENT_TIMESTAMP");
-    values.push(userId);
-
-    const updateQuery = `
-            UPDATE users 
-            SET ${updates.join(", ")}
-            WHERE user_id = ?
-        `;
-
-    await connection.execute(updateQuery, values);
-
-    // Fetch updated user data
-    const [updatedUsers] = await connection.execute(queries.getUserById, [
-      userId,
-    ]);
-
-    await connection.commit();
-
-    // Generate new token with updated information
-    const token = generateToken(updatedUsers[0]);
-
-    console.log("Profile update successful");
-    return createResponse(200, {
-      message: "Profile updated successfully",
-      token,
-      user: {
-        username: updatedUsers[0].username,
-        email: updatedUsers[0].email,
-        city: updatedUsers[0].city,
-        state: updatedUsers[0].state,
-        countryCode: updatedUsers[0].country_code,
-      },
-    });
   } catch (error) {
-    console.error("Profile update error:", {
-      errorMessage: error.message,
-      errorName: error.name,
-      errorStack: error.stack,
-      timestamp: new Date().toISOString(),
-    });
+      console.error('Profile update error:', {
+          errorMessage: error.message,
+          errorName: error.name,
+          errorStack: error.stack,
+          timestamp: new Date().toISOString()
+      });
 
-    await connection.rollback();
-    return createResponse(500, {
-      error: "Internal server error during profile update",
-      details:
-        process.env.NODE_ENV === "development" ? error.message : undefined,
-    });
+      await connection.rollback();
+      return createResponse(500, {
+          error: 'Internal server error during profile update',
+          details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
   } finally {
-    await connection.end();
+      await connection.end();
   }
 };
 

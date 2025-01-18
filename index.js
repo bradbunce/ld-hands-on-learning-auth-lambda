@@ -3,7 +3,7 @@ if (process.env.NODE_ENV === "development") {
   require("dotenv").config();
 }
 const jwt = require('jsonwebtoken');
-const {
+const { 
   handleLogin,
   handleRegister,
   handlePasswordReset,
@@ -12,9 +12,9 @@ const {
   handleLogout,
   handleValidateResetToken,
   handleProfileUpdate,
-  handleTokenValidation // Add new handler
+  handleTokenValidation,  // Make sure this is exported from authProcessor
+  getUserById            // We need this for token validation
 } = require("./authProcessor");
-const { createResponse } = require("./utils");
 
 exports.handler = async (event) => {
   // Handle preflight requests
