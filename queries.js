@@ -1,5 +1,5 @@
 const queries = {
-    getUserByUsername: `
+  getUserByUsername: `
         SELECT
             user_id,
             username,
@@ -13,7 +13,7 @@ const queries = {
         WHERE username = ?
     `,
 
-    getUserByEmail: `
+  getUserByEmail: `
         SELECT
             user_id,
             username,
@@ -22,7 +22,7 @@ const queries = {
         WHERE email = ?
     `,
 
-    createUser: `
+  createUser: `
         INSERT INTO users (
             username,
             email,
@@ -30,19 +30,19 @@ const queries = {
         ) VALUES (?, ?, ?)
     `,
 
-    updateLastLogin: `
+  updateLastLogin: `
         UPDATE users
         SET last_login = CURRENT_TIMESTAMP
         WHERE user_id = ?
     `,
 
-    updatePassword: `
+  updatePassword: `
         UPDATE users
         SET password_hash = ?
         WHERE user_id = ?
     `,
 
-    createPasswordReset: `
+  createPasswordReset: `
         INSERT INTO password_resets (
             user_id,
             reset_token,
@@ -50,7 +50,7 @@ const queries = {
         ) VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 1 HOUR))
     `,
 
-    getPasswordReset: `
+  getPasswordReset: `
         SELECT
             pr.reset_token,
             pr.expires_at,
@@ -64,7 +64,7 @@ const queries = {
         AND pr.used = 0
     `,
 
-    getValidPasswordReset: `
+  getValidPasswordReset: `
         SELECT
             pr.reset_token,
             pr.expires_at,
@@ -78,17 +78,29 @@ const queries = {
         AND pr.used = 0
     `,
 
-    markResetTokenUsed: `
+  markResetTokenUsed: `
         UPDATE password_resets
         SET used = 1
         WHERE reset_token = ?
     `,
 
-    updateUserPassword: `
+  updateUserPassword: `
         UPDATE users
         SET password_hash = ?
         WHERE user_id = ?
-    `
+    `,
+
+  getUserById: `
+        SELECT user_id, username, email, password_hash, city, state, country_code 
+        FROM users 
+        WHERE user_id = ?
+    `,
+
+  updateUserProfile: `
+        UPDATE users 
+        SET username = ?, email = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE user_id = ?
+    `,
 };
 
 module.exports = { queries };

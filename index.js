@@ -2,7 +2,6 @@
 if (process.env.NODE_ENV === "development") {
   require("dotenv").config();
 }
-
 const jwt = require('jsonwebtoken');
 const {
   handleLogin,
@@ -11,7 +10,8 @@ const {
   handlePasswordResetConfirm,
   handlePasswordUpdate,
   handleLogout,
-  handleValidateResetToken
+  handleValidateResetToken,
+  handleProfileUpdate  // Add the new handler
 } = require("./authProcessor");
 const { createResponse } = require("./utils");
 
@@ -24,7 +24,6 @@ exports.handler = async (event) => {
   try {
     const { path, httpMethod, body } = event;
     let requestBody;
-    
     try {
       requestBody = body ? JSON.parse(body) : {};
       console.log("Parsed body:", requestBody);
@@ -39,40 +38,64 @@ exports.handler = async (event) => {
     const routeKey = `${httpMethod} ${path}`;
     console.log("Route key:", routeKey);
 
+    // Helper function to validate token and get userId
+    const validateTokenAndGetUserId = (headers) => {
+      const authHeader = headers.Authorization || headers.authorization;
+      if (!authHeader) {
+        throw new Error("Authorization header required");
+      }
+      const token = authHeader.replace('Bearer ', '');
+      try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        return decoded.userId;
+      } catch (error) {
+        console.error('Token verification failed:', error);
+        throw new Error("Invalid token");
+      }
+    };
+
     switch (routeKey) {
       case "POST /login":
-          result = await handleLogin(requestBody);
-          return result;
+        result = await handleLogin(requestBody);
+        return result;
+
       case "POST /register":
-          result = await handleRegister(requestBody);
-          return result;
+        result = await handleRegister(requestBody);
+        return result;
+
       case "POST /reset-password-request":
-          result = await handlePasswordReset(requestBody);
-          return result;
+        result = await handlePasswordReset(requestBody);
+        return result;
+
       case "POST /reset-password-confirm":
-          result = await handlePasswordResetConfirm(requestBody);
-          return result;
+        result = await handlePasswordResetConfirm(requestBody);
+        return result;
+
       case "POST /validate-reset-token":
-          result = await handleValidateResetToken(requestBody);
-          return result;
+        result = await handleValidateResetToken(requestBody);
+        return result;
+
       case "POST /logout":
-          console.log("Processing logout request");
-          result = await handleLogout(requestBody, event.headers);
-          return result;
+        console.log("Processing logout request");
+        result = await handleLogout(requestBody, event.headers);
+        return result;
+
       case "POST /update-password":
-        const authHeader = event.headers.Authorization || event.headers.authorization;
-        if (!authHeader) {
-          return createResponse(401, { error: "Authorization header required" });
-        }
-        
-        const token = authHeader.replace('Bearer ', '');
         try {
-          const decoded = jwt.verify(token, process.env.JWT_SECRET);
-          result = await handlePasswordUpdate(requestBody, decoded.userId);
+          const userId = validateTokenAndGetUserId(event.headers);
+          result = await handlePasswordUpdate(requestBody, userId);
           return result;
         } catch (error) {
-          console.error('Token verification failed:', error);
-          return createResponse(401, { error: "Invalid token" });
+          return createResponse(401, { error: error.message });
+        }
+
+      case "POST /update-profile":
+        try {
+          const userId = validateTokenAndGetUserId(event.headers);
+          result = await handleProfileUpdate(requestBody, userId);
+          return result;
+        } catch (error) {
+          return createResponse(401, { error: error.message });
         }
 
       default:
