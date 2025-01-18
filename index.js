@@ -11,7 +11,8 @@ const {
   handlePasswordUpdate,
   handleLogout,
   handleValidateResetToken,
-  handleProfileUpdate  // Add the new handler
+  handleProfileUpdate,
+  handleTokenValidation // Add new handler
 } = require("./authProcessor");
 const { createResponse } = require("./utils");
 
@@ -55,6 +56,15 @@ exports.handler = async (event) => {
     };
 
     switch (routeKey) {
+      case "GET /validate-token":
+        try {
+          const userId = validateTokenAndGetUserId(event.headers);
+          result = await handleTokenValidation(userId);
+          return result;
+        } catch (error) {
+          return createResponse(401, { error: error.message });
+        }
+
       case "POST /login":
         result = await handleLogin(requestBody);
         return result;

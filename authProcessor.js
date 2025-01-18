@@ -591,6 +591,44 @@ const handleProfileUpdate = async (requestBody, userId) => {
   }
 };
 
+const handleTokenValidation = async (userId) => {
+  console.log("Token validation started for user:", userId);
+
+  try {
+    const user = await getUserById(userId);
+
+    if (!user) {
+      console.log("Token validation failed: User not found");
+      return createResponse(404, { error: "User not found" });
+    }
+
+    console.log("Token validation successful");
+    return createResponse(200, {
+      user: {
+        id: user.user_id,
+        username: user.username,
+        email: user.email,
+        city: user.city,
+        state: user.state,
+        countryCode: user.country_code,
+      },
+    });
+  } catch (error) {
+    console.error("Token validation error:", {
+      errorMessage: error.message,
+      errorName: error.name,
+      errorStack: error.stack,
+      timestamp: new Date().toISOString(),
+    });
+
+    return createResponse(500, {
+      error: "Internal server error during token validation",
+      details:
+        process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
+  }
+};
+
 module.exports = {
   handleLogin,
   handleRegister,
@@ -600,4 +638,5 @@ module.exports = {
   handleLogout,
   handleValidateResetToken,
   handleProfileUpdate,
+  handleTokenValidation,
 };
